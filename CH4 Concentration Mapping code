@@ -1,0 +1,71 @@
+var ch4 = ee.ImageCollection('COPERNICUS/S5P/OFFL/L3_CH4')
+  .select('CH4_column_volume_mixing_ratio_dry_air')
+  .filterDate('2019-01-01', '2019-12-01')
+  .filterBounds(dhaka);
+
+// ===============================
+// 3. Annual Mean CH4 Concentration
+// ===============================
+var ch4_mean = ch4.mean().clip(dhaka);
+
+// ===============================
+// 4. Visualization Parameters
+// ===============================
+var ch4_viz = {
+  min: 1901.4768400406283,
+  max: 2096.2114967977172,
+  palette: [
+    'black', 'blue', 'purple',
+    'cyan', 'green', 'yellow', 'red'
+  ]
+};
+
+// ===============================
+// 5. Add CH4 Map to Viewer
+// ===============================
+Map.centerObject(dhaka, 10);
+Map.addLayer(ch4_mean, ch4_viz, 'Mean CH₄ Concentration (2019)');
+Map.addLayer(dhaka, {color: 'white'}, 'Dhaka Boundary');
+
+// ===============================
+// 6. Time Series Chart (Monthly)
+// ===============================
+var ch4_chart = ui.Chart.image.series({
+  imageCollection: ch4,
+  region: dhaka,
+  reducer: ee.Reducer.mean(),
+  scale: 1113.2,
+  xProperty: 'system:time_start'
+})
+.setOptions({
+  title: 'CH₄ Time Series over Dhaka City (2019)',
+  hAxis: {
+    title: 'Date',
+    format: 'MMM yyyy',
+    gridlines: {count: 12}
+  },
+  vAxis: {
+    title: 'CH₄ (ppb)'
+  },
+  lineWidth: 2,
+  pointSize: 4,
+  series: {
+    0: {color: 'red'}
+  }
+});
+
+// ===============================
+// 7. Print Chart
+// ===============================
+print(ch4_chart);
+
+Export.image.toDrive({
+  image: ch4_mean,
+  description: 'Dhaka_CH4_Mean_2019',
+  folder: 'GEE_CH4_Exports',
+  fileNamePrefix: 'Dhaka_CH4_Mean_2019',
+  region: dhaka.geometry(),
+  scale: 1113.2,        // Sentinel-5P recommended
+  crs: 'EPSG:4326',
+  maxPixels: 1e13
+});
